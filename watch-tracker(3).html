@@ -1,0 +1,2334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Charts - Track Prices & Collections</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <style>
+        :root {
+            --primary-dark: #0a0a0a;
+            --secondary-dark: #1a1a1a;
+            --accent-gold: #d4af37;
+            --accent-silver: #c0c0c0;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --border-subtle: rgba(212, 175, 55, 0.2);
+            --success-green: #2ecc71;
+            --danger-red: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cormorant Garamond', 'Georgia', serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Luxury grain texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(212, 175, 55, 0.03) 2px, rgba(212, 175, 55, 0.03) 4px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 3rem 0 4rem;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 300;
+            letter-spacing: 0.3rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-silver) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+        }
+
+        .tagline {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.2rem;
+            font-weight: 300;
+        }
+
+        /* Search Section */
+        .search-section {
+            background: var(--secondary-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 2px;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 1s ease-out 0.2s both;
+        }
+
+        .search-grid {
+            display: grid;
+            grid-template-columns: 2fr 2fr 1fr 1.5fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15rem;
+            color: var(--accent-gold);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        input {
+            background: var(--primary-dark);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 1rem;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--accent-gold) 0%, #b8941f 100%);
+            border: none;
+            color: var(--primary-dark);
+            padding: 1rem 2rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15rem;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+            font-family: 'Cormorant Garamond', serif;
+            align-self: flex-end;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* Results Section */
+        .results-section {
+            display: none;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .watch-card {
+            background: var(--secondary-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 2px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .watch-header {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 2rem;
+            align-items: start;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .watch-info h2 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            letter-spacing: 0.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .watch-info .reference {
+            font-family: 'Courier New', monospace;
+            color: var(--accent-gold);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .watch-info .description {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            max-width: 600px;
+        }
+
+        .price-box {
+            text-align: right;
+        }
+
+        .current-price {
+            font-size: 3rem;
+            font-weight: 300;
+            color: var(--accent-gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .price-change {
+            font-size: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 2px;
+            display: inline-block;
+        }
+
+        .price-change.positive {
+            background: rgba(46, 204, 113, 0.2);
+            color: var(--success-green);
+        }
+
+        .price-change.negative {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--danger-red);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .tab {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 1rem 2rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .tab.active {
+            color: var(--accent-gold);
+            border-bottom-color: var(--accent-gold);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: var(--primary-dark);
+            padding: 2rem;
+            border-radius: 2px;
+            border: 1px solid var(--border-subtle);
+            margin-bottom: 2rem;
+        }
+
+        #priceChart {
+            max-height: 400px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--primary-dark);
+            padding: 1.5rem;
+            border: 1px solid var(--border-subtle);
+            border-radius: 2px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            color: var(--accent-gold);
+            font-weight: 300;
+        }
+
+        /* Price History Table */
+        .price-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .price-table th {
+            text-align: left;
+            padding: 1rem;
+            background: var(--primary-dark);
+            color: var(--accent-gold);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15rem;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .price-table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+            font-family: 'Courier New', monospace;
+        }
+
+        .price-table tr:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        /* Comparison Section */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .comparison-card {
+            background: var(--primary-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 2px;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .comparison-card h3 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+
+        .comparison-card .reference {
+            font-family: 'Courier New', monospace;
+            color: var(--accent-silver);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .remove-comparison {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+        }
+
+        .remove-comparison:hover {
+            background: rgba(231, 76, 60, 0.2);
+            border-color: var(--danger-red);
+            color: var(--danger-red);
+        }
+
+        .add-comparison-btn {
+            background: transparent;
+            border: 2px dashed var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 1.5rem;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .add-comparison-btn:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            background: rgba(212, 175, 55, 0.05);
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .search-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .watch-header {
+                grid-template-columns: 1fr;
+            }
+
+            .price-box {
+                text-align: left;
+            }
+
+            .tabs {
+                overflow-x: auto;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .trending-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .collection-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            border: 3px solid var(--border-subtle);
+            border-top: 3px solid var(--accent-gold);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Navigation Buttons */
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 0.75rem 1.5rem;
+            font-size: 0.85rem;
+        }
+
+        .nav-btn:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            transform: translateY(0);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(135deg, var(--accent-gold) 0%, #b8941f 100%);
+            color: var(--primary-dark);
+            border-color: var(--accent-gold);
+        }
+
+        /* Autocomplete */
+        .autocomplete-container {
+            position: relative;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--primary-dark);
+            border: 1px solid var(--border-subtle);
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+
+        .autocomplete-dropdown.active {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+            transition: background 0.2s ease;
+        }
+
+        .autocomplete-item:hover {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .autocomplete-item small {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            display: block;
+            margin-top: 0.25rem;
+        }
+
+        /* Trending Section */
+        .trending-section {
+            background: var(--secondary-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 2px;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 1s ease-out 0.4s both;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .section-header h2 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 0.2rem;
+            text-transform: uppercase;
+            color: var(--accent-gold);
+        }
+
+        .refresh-btn {
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+        }
+
+        .refresh-btn:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .trending-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .trending-card {
+            background: var(--primary-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 2px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .trending-card:hover {
+            border-color: var(--accent-gold);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+        }
+
+        .trending-card h3 {
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+
+        .trending-card .reference {
+            font-family: 'Courier New', monospace;
+            color: var(--accent-silver);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .trending-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .trending-price {
+            font-size: 1.3rem;
+            color: var(--accent-gold);
+            font-weight: 300;
+        }
+
+        .trending-badge {
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--accent-gold);
+            padding: 0.25rem 0.75rem;
+            border-radius: 2px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+        }
+
+        /* Price Alerts */
+        .alert-form {
+            background: var(--primary-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 2px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .alert-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .alert-list {
+            margin-top: 1.5rem;
+        }
+
+        .alert-item {
+            background: var(--primary-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 2px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert-info {
+            flex: 1;
+        }
+
+        .alert-info h4 {
+            font-size: 1rem;
+            font-weight: 300;
+            margin-bottom: 0.25rem;
+        }
+
+        .alert-info small {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .delete-alert {
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+        }
+
+        .delete-alert:hover {
+            background: rgba(231, 76, 60, 0.2);
+            border-color: var(--danger-red);
+            color: var(--danger-red);
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Collection Section */
+        .collection-section {
+            background: var(--secondary-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 2px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .collection-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .collection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .collection-card {
+            background: var(--primary-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 2px;
+            padding: 1.5rem;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .collection-card:hover {
+            border-color: var(--accent-gold);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.15);
+        }
+
+        .collection-card h3 {
+            font-size: 1.3rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+
+        .collection-card .reference {
+            font-family: 'Courier New', monospace;
+            color: var(--accent-silver);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .collection-price {
+            font-size: 1.5rem;
+            color: var(--accent-gold);
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+
+        .purchase-info {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .collection-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .collection-actions button {
+            flex: 1;
+            padding: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .add-to-collection {
+            background: transparent;
+            border: 2px dashed var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 2rem;
+            text-align: center;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .add-to-collection:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            background: rgba(212, 175, 55, 0.05);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .add-to-collection-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--secondary-dark);
+            border: 1px solid var(--border-subtle);
+            border-radius: 2px;
+            padding: 2.5rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 0.1rem;
+        }
+
+        .close-modal {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal:hover {
+            color: var(--accent-gold);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .modal-form .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-form input,
+        .modal-form select {
+            width: 100%;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+        .cancel-btn {
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        .cancel-btn:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        select {
+            background: var(--primary-dark);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 1rem;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Watch Charts</h1>
+            <p class="tagline">Watch Prices • Set Alerts • Track Your Collection</p>
+        </header>
+
+        <!-- Navigation -->
+        <div class="nav-buttons">
+            <button class="nav-btn active" onclick="showView('search')">Search</button>
+            <button class="nav-btn" onclick="showView('trending')">Trending</button>
+            <button class="nav-btn" onclick="showView('alerts')">Price Alerts</button>
+            <button class="nav-btn" onclick="showView('collection')">My Collection</button>
+        </div>
+
+        <!-- Trending Section -->
+        <div id="trendingView" class="trending-section" style="display: none;">
+            <div class="section-header">
+                <h2>Trending Watches</h2>
+                <button class="refresh-btn" onclick="refreshTrending()">⟳ Refresh</button>
+            </div>
+            <div class="trending-grid" id="trendingGrid">
+                <!-- Trending cards will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Price Alerts Section -->
+        <div id="alertsView" class="search-section" style="display: none;">
+            <div class="section-header">
+                <h2>Price Alerts</h2>
+            </div>
+            
+            <div class="alert-form">
+                <h3 style="font-size: 1.1rem; font-weight: 300; margin-bottom: 1rem; color: var(--accent-gold);">Create New Alert</h3>
+                <div class="alert-inputs">
+                    <div class="input-group">
+                        <label for="alertWatch">Watch</label>
+                        <input type="text" id="alertWatch" placeholder="Search for a watch..." oninput="showAlertAutocomplete(this.value)">
+                        <div class="autocomplete-dropdown" id="alertAutocomplete"></div>
+                    </div>
+                    <div class="input-group">
+                        <label for="alertCondition">Condition</label>
+                        <select id="alertCondition">
+                            <option value="below">Price drops below</option>
+                            <option value="above">Price rises above</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="alertPrice">Target Price ($)</label>
+                        <input type="number" id="alertPrice" placeholder="15000">
+                    </div>
+                </div>
+                <button onclick="createAlert()">Create Alert</button>
+            </div>
+
+            <div class="alert-list" id="alertList">
+                <!-- Alerts will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Collection Section -->
+        <div id="collectionView" class="collection-section" style="display: none;">
+            <div class="section-header">
+                <h2>My Collection</h2>
+                <button class="refresh-btn" onclick="openAddToCollectionModal()">+ Add Watch</button>
+            </div>
+
+            <div class="collection-stats">
+                <div class="stat-card">
+                    <div class="stat-label">Total Watches</div>
+                    <div class="stat-value" id="collectionCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Value</div>
+                    <div class="stat-value" id="collectionValue">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Gain/Loss</div>
+                    <div class="stat-value" id="collectionGainLoss">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Best Performer</div>
+                    <div class="stat-value" id="bestPerformer" style="font-size: 1.2rem;">-</div>
+                </div>
+            </div>
+
+            <div class="collection-grid" id="collectionGrid">
+                <!-- Collection cards will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Search Section -->
+        <div id="searchView">
+        <div class="search-section">
+            <div class="search-grid">
+                <div class="input-group autocomplete-container">
+                    <label for="brand">Brand</label>
+                    <input type="text" id="brand" placeholder="e.g., Rolex, Patek Philippe, Audemars Piguet" oninput="showAutocomplete('brand', this.value)">
+                    <div class="autocomplete-dropdown" id="brandAutocomplete"></div>
+                </div>
+                <div class="input-group autocomplete-container">
+                    <label for="model">Model</label>
+                    <input type="text" id="model" placeholder="e.g., Submariner, Nautilus, Royal Oak" oninput="showAutocomplete('model', this.value)">
+                    <div class="autocomplete-dropdown" id="modelAutocomplete"></div>
+                </div>
+                <div class="input-group autocomplete-container">
+                    <label for="year">Year</label>
+                    <input type="text" id="year" placeholder="e.g., 1985, 2020" oninput="showAutocomplete('year', this.value)">
+                    <div class="autocomplete-dropdown" id="yearAutocomplete"></div>
+                </div>
+                <div class="input-group autocomplete-container">
+                    <label for="reference">Reference</label>
+                    <input type="text" id="reference" placeholder="Optional" oninput="showAutocomplete('reference', this.value)">
+                    <div class="autocomplete-dropdown" id="referenceAutocomplete"></div>
+                </div>
+            </div>
+            <button onclick="searchWatch()">Search Watch</button>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="results-section">
+            <div class="watch-card">
+                <div class="watch-header">
+                    <div class="watch-info">
+                        <h2 id="watchName">-</h2>
+                        <div class="reference" id="watchReference">-</div>
+                        <p class="description" id="watchDescription">-</p>
+                    </div>
+                    <div class="price-box">
+                        <div class="current-price" id="currentPrice">-</div>
+                        <div class="price-change" id="priceChange">-</div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('overview')">Overview</button>
+                    <button class="tab" onclick="switchTab('history')">Price History</button>
+                    <button class="tab" onclick="switchTab('comparison')">Compare</button>
+                </div>
+
+                <!-- Overview Tab -->
+                <div id="overviewTab" class="tab-content active">
+                    <div class="chart-container">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Average Price</div>
+                            <div class="stat-value" id="avgPrice">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Highest Price</div>
+                            <div class="stat-value" id="maxPrice">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Lowest Price</div>
+                            <div class="stat-value" id="minPrice">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Volatility</div>
+                            <div class="stat-value" id="volatility">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Tab -->
+                <div id="historyTab" class="tab-content">
+                    <table class="price-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Price</th>
+                                <th>Change</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Comparison Tab -->
+                <div id="comparisonTab" class="tab-content">
+                    <div class="comparison-grid" id="comparisonGrid">
+                        <!-- Comparison cards will be added here -->
+                    </div>
+                    <button class="add-comparison-btn" onclick="addComparison()">+ Add Watch to Compare</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Searching watch database...</p>
+        </div>
+        </div><!-- End searchView -->
+
+        <!-- Add to Collection Modal -->
+        <div id="addCollectionModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Add to Collection</h2>
+                    <button class="close-modal" onclick="closeModal('addCollectionModal')">×</button>
+                </div>
+                <form class="modal-form" onsubmit="event.preventDefault(); addToCollection();">
+                    <div class="input-group">
+                        <label for="collectionBrand">Brand</label>
+                        <input type="text" id="collectionBrand" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="collectionModel">Model</label>
+                        <input type="text" id="collectionModel" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="collectionReference">Reference Number</label>
+                        <input type="text" id="collectionReference" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="purchasePrice">Purchase Price ($)</label>
+                        <input type="number" id="purchasePrice" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="purchaseDate">Purchase Date</label>
+                        <input type="date" id="purchaseDate" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="cancel-btn" onclick="closeModal('addCollectionModal')">Cancel</button>
+                        <button type="submit">Add to Collection</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // MOCK DATA - Replace with your API integration
+        // ============================================
+        
+        const MOCK_WATCHES = {
+            'rolex-submariner-126610ln': {
+                brand: 'Rolex',
+                model: 'Submariner Date',
+                reference: '126610LN',
+                year: 2020,
+                description: 'The iconic Rolex Submariner Date in stainless steel with black ceramic bezel. Features the in-house Caliber 3235 movement with 70-hour power reserve.',
+                currentPrice: 15850,
+                priceHistory: [
+                    { date: '2024-02-01', price: 14200, change: 0, source: 'Chrono24' },
+                    { date: '2024-05-15', price: 14650, change: 3.17, source: 'WatchCharts' },
+                    { date: '2024-08-01', price: 15100, change: 3.07, source: 'Chrono24' },
+                    { date: '2024-11-01', price: 15450, change: 2.32, source: 'WatchBox' },
+                    { date: '2025-02-01', price: 15850, change: 2.59, source: 'Chrono24' }
+                ]
+            },
+            'patek-philippe-nautilus-5711/1a': {
+                brand: 'Patek Philippe',
+                model: 'Nautilus',
+                reference: '5711/1A',
+                year: 2006,
+                description: 'The legendary Patek Philippe Nautilus with the iconic porthole design. Stainless steel case with blue dial. (Discontinued in 2021)',
+                currentPrice: 182500,
+                priceHistory: [
+                    { date: '2024-02-01', price: 165000, change: 0, source: 'WatchBox' },
+                    { date: '2024-05-15', price: 172000, change: 4.24, source: 'Sotheby\'s' },
+                    { date: '2024-08-01', price: 178000, change: 3.49, source: 'Christie\'s' },
+                    { date: '2024-11-01', price: 180000, change: 1.12, source: 'WatchBox' },
+                    { date: '2025-02-01', price: 182500, change: 1.39, source: 'Chrono24' }
+                ]
+            },
+            'audemars-piguet-royal-oak-15500st': {
+                brand: 'Audemars Piguet',
+                model: 'Royal Oak',
+                reference: '15500ST',
+                year: 2019,
+                description: 'The Royal Oak 41mm in stainless steel with blue "Grande Tapisserie" dial. Powered by the in-house Caliber 4302 automatic movement.',
+                currentPrice: 62800,
+                priceHistory: [
+                    { date: '2024-02-01', price: 58000, change: 0, source: 'Chrono24' },
+                    { date: '2024-05-15', price: 59500, change: 2.59, source: 'WatchBox' },
+                    { date: '2024-08-01', price: 61000, change: 2.52, source: 'Chrono24' },
+                    { date: '2024-11-01', price: 62000, change: 1.64, source: 'WatchCharts' },
+                    { date: '2025-02-01', price: 62800, change: 1.29, source: 'Chrono24' }
+                ]
+            },
+            'rolex-daytona-116500ln': {
+                brand: 'Rolex',
+                model: 'Daytona',
+                reference: '116500LN',
+                year: 2016,
+                description: 'The Rolex Cosmograph Daytona with white dial and black ceramic bezel. One of the most sought-after sports watches.',
+                currentPrice: 38500,
+                priceHistory: [
+                    { date: '2024-02-01', price: 35000, change: 0, source: 'Chrono24' },
+                    { date: '2024-05-15', price: 36200, change: 3.43, source: 'WatchBox' },
+                    { date: '2024-08-01', price: 37500, change: 3.59, source: 'Chrono24' },
+                    { date: '2024-11-01', price: 38000, change: 1.33, source: 'WatchCharts' },
+                    { date: '2025-02-01', price: 38500, change: 1.32, source: 'Chrono24' }
+                ]
+            },
+            'omega-speedmaster-310.30.42.50.01.001': {
+                brand: 'Omega',
+                model: 'Speedmaster Professional Moonwatch',
+                reference: '310.30.42.50.01.001',
+                year: 2021,
+                description: 'The legendary Moonwatch, the first watch worn on the moon. Hesalite crystal and manual-wind chronograph movement.',
+                currentPrice: 6850,
+                priceHistory: [
+                    { date: '2024-02-01', price: 6400, change: 0, source: 'Chrono24' },
+                    { date: '2024-05-15', price: 6550, change: 2.34, source: 'WatchBox' },
+                    { date: '2024-08-01', price: 6700, change: 2.29, source: 'Chrono24' },
+                    { date: '2024-11-01', price: 6800, change: 1.49, source: 'WatchCharts' },
+                    { date: '2025-02-01', price: 6850, change: 0.74, source: 'Chrono24' }
+                ]
+            },
+            'omega-speedmaster-145.022': {
+                brand: 'Omega',
+                model: 'Speedmaster Professional',
+                reference: '145.022',
+                year: 1985,
+                description: 'Vintage Omega Speedmaster Professional from 1985. Caliber 861 movement with tritium dial. A collectible piece from the golden era.',
+                currentPrice: 8200,
+                priceHistory: [
+                    { date: '2024-02-01', price: 7500, change: 0, source: 'Chrono24' },
+                    { date: '2024-05-15', price: 7750, change: 3.33, source: 'WatchBox' },
+                    { date: '2024-08-01', price: 7950, change: 2.58, source: 'Chrono24' },
+                    { date: '2024-11-01', price: 8100, change: 1.89, source: 'WatchCharts' },
+                    { date: '2025-02-01', price: 8200, change: 1.23, source: 'Chrono24' }
+                ]
+            },
+            'omega-speedmaster-345.0022': {
+                brand: 'Omega',
+                model: 'Speedmaster Automatic',
+                reference: '345.0022',
+                year: 1985,
+                description: 'Rare 1985 Omega Speedmaster Automatic with day-date complication. Features the caliber 1045 automatic movement.',
+                currentPrice: 3900,
+                priceHistory: [
+                    { date: '2024-02-01', price: 3500, change: 0, source: 'Chrono24' },
+                    { date: '2024-05-15', price: 3650, change: 4.29, source: 'WatchBox' },
+                    { date: '2024-08-01', price: 3750, change: 2.74, source: 'Chrono24' },
+                    { date: '2024-11-01', price: 3850, change: 2.67, source: 'WatchCharts' },
+                    { date: '2025-02-01', price: 3900, change: 1.30, source: 'Chrono24' }
+                ]
+            },
+            'omega-speedmaster-145.0022-69': {
+                brand: 'Omega',
+                model: 'Speedmaster Mark II',
+                reference: '145.0022-69',
+                year: 1985,
+                description: '1985 Omega Speedmaster Mark II reissue with distinctive barrel-shaped case. Caliber 861 chronograph movement.',
+                currentPrice: 4500,
+                priceHistory: [
+                    { date: '2024-02-01', price: 4100, change: 0, source: 'Chrono24' },
+                    { date: '2024-05-15', price: 4250, change: 3.66, source: 'WatchBox' },
+                    { date: '2024-08-01', price: 4350, change: 2.35, source: 'Chrono24' },
+                    { date: '2024-11-01', price: 4450, change: 2.30, source: 'WatchCharts' },
+                    { date: '2025-02-01', price: 4500, change: 1.12, source: 'Chrono24' }
+                ]
+            }
+        };
+
+        // Autocomplete data
+        const AUTOCOMPLETE_DATA = {
+            brands: ['Rolex', 'Patek Philippe', 'Audemars Piguet', 'Omega', 'Cartier', 'IWC', 'Jaeger-LeCoultre', 'Vacheron Constantin', 'A. Lange & Söhne', 'Breguet'],
+            models: {
+                'Rolex': ['Submariner', 'Daytona', 'GMT-Master II', 'Datejust', 'Day-Date', 'Explorer', 'Sea-Dweller', 'Yacht-Master'],
+                'Patek Philippe': ['Nautilus', 'Aquanaut', 'Calatrava', 'Grand Complications', 'Complications'],
+                'Audemars Piguet': ['Royal Oak', 'Royal Oak Offshore', 'Code 11.59', 'Jules Audemars'],
+                'Omega': ['Speedmaster', 'Seamaster', 'Constellation', 'De Ville'],
+            },
+            years: ['2024', '2023', '2022', '2021', '2020', '2019', '2018', '2017', '2016', '2015', '2010', '2005', '2000', '1995', '1990', '1985', '1980', '1975', '1970', '1965'],
+            references: ['126610LN', '116500LN', '5711/1A', '15500ST', '310.30.42.50.01.001', '126710BLRO', '5167A', '15400ST', '145.022', '345.0022', '145.0022-69']
+        };
+
+        // State
+        let currentChart = null;
+        let comparisonWatches = [];
+        let priceAlerts = JSON.parse(localStorage.getItem('priceAlerts')) || [];
+        let collection = JSON.parse(localStorage.getItem('watchCollection')) || [];
+        let searchHistory = JSON.parse(localStorage.getItem('searchHistory')) || [];
+        let currentView = 'search';
+        let currentWatchData = null; // Track the currently displayed watch
+
+        // ============================================
+        // SEARCH FUNCTION - Modify to connect to your API
+        // ============================================
+        
+        function searchWatch() {
+            const brand = document.getElementById('brand').value.trim();
+            const model = document.getElementById('model').value.trim();
+            const year = document.getElementById('year').value.trim();
+            const reference = document.getElementById('reference').value.trim();
+
+            if (!brand && !model && !year && !reference) {
+                alert('Please enter at least one search criteria');
+                return;
+            }
+
+            // Track search in history
+            const searchQuery = { brand, model, year, reference, timestamp: Date.now() };
+            searchHistory.unshift(searchQuery);
+            searchHistory = searchHistory.slice(0, 100); // Keep last 100 searches
+            localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+
+            // Show loading
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+
+            // Simulate API call
+            setTimeout(() => {
+                console.log('Search criteria:', { brand, model, year, reference });
+                
+                // Find matching watches
+                let matchingWatches = Object.values(MOCK_WATCHES).filter(watch => {
+                    let matches = true;
+                    
+                    if (brand && !watch.brand.toLowerCase().includes(brand.toLowerCase())) {
+                        matches = false;
+                    }
+                    if (model && !watch.model.toLowerCase().includes(model.toLowerCase())) {
+                        matches = false;
+                    }
+                    if (year) {
+                        // If year is specified, watch must have a year and it must match
+                        if (!watch.year || watch.year.toString() !== year) {
+                            matches = false;
+                        }
+                    }
+                    if (reference && !watch.reference.toLowerCase().includes(reference.toLowerCase())) {
+                        matches = false;
+                    }
+                    
+                    return matches;
+                });
+
+                console.log('Matching watches found:', matchingWatches.length);
+                console.log('Watches:', matchingWatches.map(w => `${w.brand} ${w.model} (${w.year})`));
+
+                // If no matches, use first watch as example
+                if (matchingWatches.length === 0) {
+                    console.log('No matches found, showing default Rolex Submariner');
+                    matchingWatches = [MOCK_WATCHES['rolex-submariner-126610ln']];
+                }
+
+                // TODO: Replace with actual API call
+                // Example API structure:
+                // fetch(`/api/watches/search?brand=${brand}&model=${model}&year=${year}&reference=${reference}`)
+                //     .then(response => response.json())
+                //     .then(data => {
+                //         if (data.length > 1) {
+                //             displaySearchResults(data);
+                //         } else {
+                //             displayWatchData(data[0]);
+                //         }
+                //     })
+                //     .catch(error => console.error('Error:', error));
+
+                // If multiple results, show list; otherwise show single watch
+                if (matchingWatches.length > 1) {
+                    displaySearchResults(matchingWatches);
+                } else {
+                    displayWatchData(matchingWatches[0]);
+                }
+            }, 800);
+        }
+
+        // ============================================
+        // DISPLAY FUNCTIONS
+        // ============================================
+
+        function displaySearchResults(watches) {
+            // Hide loading
+            document.getElementById('loadingState').style.display = 'none';
+            
+            // Create a search results view
+            const resultsSection = document.getElementById('resultsSection');
+            resultsSection.innerHTML = `
+                <div class="watch-card">
+                    <div class="section-header" style="border-bottom: 1px solid var(--border-subtle); margin-bottom: 2rem;">
+                        <h2>Search Results (${watches.length} watches found)</h2>
+                    </div>
+                    <div class="trending-grid">
+                        ${watches.map(watch => `
+                            <div class="trending-card" style="cursor: default; padding-bottom: 1rem;">
+                                <div onclick="selectWatchFromResults('${watch.brand}', '${watch.model}', '${watch.reference}')" style="cursor: pointer;">
+                                    <h3>${watch.brand} ${watch.model}</h3>
+                                    <div class="reference">Ref. ${watch.reference}${watch.year ? ` • ${watch.year}` : ''}</div>
+                                    <div class="trending-stats">
+                                        <div class="trending-price">$${watch.currentPrice.toLocaleString()}</div>
+                                        ${watch.year ? `<div class="trending-badge">${watch.year}</div>` : ''}
+                                    </div>
+                                </div>
+                                <button style="margin-top: 1rem; width: 100%; padding: 0.75rem; font-size: 0.8rem;" 
+                                        onclick="event.stopPropagation(); quickAddFromSearch('${watch.brand}', '${watch.model}', '${watch.reference}', ${watch.currentPrice})">
+                                    + Add to Collection
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            resultsSection.style.display = 'block';
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function selectWatchFromResults(brand, model, reference) {
+            // Find the exact watch
+            const watch = Object.values(MOCK_WATCHES).find(w => 
+                w.brand === brand && w.model === model && w.reference === reference
+            );
+            
+            if (watch) {
+                displayWatchData(watch);
+            }
+        }
+
+        function displayWatchData(data) {
+            // Store current watch data for quick add to collection
+            currentWatchData = data;
+            
+            // Hide loading
+            document.getElementById('loadingState').style.display = 'none';
+            
+            // Reset results section to single watch view
+            const resultsSection = document.getElementById('resultsSection');
+            resultsSection.innerHTML = `
+                <div class="watch-card">
+                    <div class="watch-header">
+                        <div class="watch-info">
+                            <h2 id="watchName">-</h2>
+                            <div class="reference" id="watchReference">-</div>
+                            <p class="description" id="watchDescription">-</p>
+                        </div>
+                        <div class="price-box">
+                            <div class="current-price" id="currentPrice">-</div>
+                            <div class="price-change" id="priceChange">-</div>
+                            <button style="margin-top: 1.5rem; width: 100%;" onclick="quickAddToCollection()">+ Add to Collection</button>
+                        </div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchTab('overview')">Overview</button>
+                        <button class="tab" onclick="switchTab('history')">Price History</button>
+                        <button class="tab" onclick="switchTab('comparison')">Compare</button>
+                    </div>
+
+                    <!-- Overview Tab -->
+                    <div id="overviewTab" class="tab-content active">
+                        <div class="chart-container">
+                            <canvas id="priceChart"></canvas>
+                        </div>
+
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">Average Price</div>
+                                <div class="stat-value" id="avgPrice">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Highest Price</div>
+                                <div class="stat-value" id="maxPrice">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Lowest Price</div>
+                                <div class="stat-value" id="minPrice">-</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Volatility</div>
+                                <div class="stat-value" id="volatility">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- History Tab -->
+                    <div id="historyTab" class="tab-content">
+                        <table class="price-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Price</th>
+                                    <th>Change</th>
+                                    <th>Source</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Comparison Tab -->
+                    <div id="comparisonTab" class="tab-content">
+                        <div class="comparison-grid" id="comparisonGrid">
+                            <!-- Comparison cards will be added here -->
+                        </div>
+                        <button class="add-comparison-btn" onclick="addComparison()">+ Add Watch to Compare</button>
+                    </div>
+                </div>
+            `;
+            resultsSection.style.display = 'block';
+
+            // Update watch info
+            document.getElementById('watchName').textContent = `${data.brand} ${data.model}`;
+            const refText = `Ref. ${data.reference}${data.year ? ` • Released ${data.year}` : ''}`;
+            document.getElementById('watchReference').textContent = refText;
+            document.getElementById('watchDescription').textContent = data.description;
+            document.getElementById('currentPrice').textContent = `$${data.currentPrice.toLocaleString()}`;
+
+            // Calculate price change
+            const firstPrice = data.priceHistory[0].price;
+            const changePercent = ((data.currentPrice - firstPrice) / firstPrice * 100).toFixed(2);
+            const changeElement = document.getElementById('priceChange');
+            changeElement.textContent = `${changePercent >= 0 ? '+' : ''}${changePercent}% (1Y)`;
+            changeElement.className = `price-change ${changePercent >= 0 ? 'positive' : 'negative'}`;
+
+            // Calculate statistics
+            const prices = data.priceHistory.map(h => h.price);
+            const avgPrice = (prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(0);
+            const maxPrice = Math.max(...prices);
+            const minPrice = Math.min(...prices);
+            const volatility = ((maxPrice - minPrice) / avgPrice * 100).toFixed(1);
+
+            document.getElementById('avgPrice').textContent = `$${parseInt(avgPrice).toLocaleString()}`;
+            document.getElementById('maxPrice').textContent = `$${maxPrice.toLocaleString()}`;
+            document.getElementById('minPrice').textContent = `$${minPrice.toLocaleString()}`;
+            document.getElementById('volatility').textContent = `${volatility}%`;
+
+            // Update price history table
+            const tableBody = document.getElementById('historyTableBody');
+            tableBody.innerHTML = data.priceHistory.map(item => `
+                <tr>
+                    <td>${item.date}</td>
+                    <td>$${item.price.toLocaleString()}</td>
+                    <td style="color: ${item.change >= 0 ? 'var(--success-green)' : 'var(--danger-red)'}">
+                        ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}%
+                    </td>
+                    <td>${item.source}</td>
+                </tr>
+            `).join('');
+
+            // Create chart
+            createPriceChart(data.priceHistory);
+
+            // Scroll to results
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function createPriceChart(priceHistory) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            const labels = priceHistory.map(h => h.date);
+            const prices = priceHistory.map(h => h.price);
+
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Price (USD)',
+                        data: prices,
+                        borderColor: '#d4af37',
+                        backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#d4af37',
+                        pointBorderColor: '#0a0a0a',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                            titleColor: '#d4af37',
+                            bodyColor: '#ffffff',
+                            borderColor: '#d4af37',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return '$' + context.parsed.y.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(212, 175, 55, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#a0a0a0',
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(212, 175, 55, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#a0a0a0'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============================================
+        // TAB SWITCHING
+        // ============================================
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // ============================================
+        // COMPARISON FUNCTIONS
+        // ============================================
+
+        function addComparison() {
+            const brand = prompt('Enter brand name:');
+            if (!brand) return;
+            
+            const model = prompt('Enter model name:');
+            if (!model) return;
+            
+            const reference = prompt('Enter reference number:');
+            if (!reference) return;
+
+            // In production, fetch real data for this watch
+            // For now, create mock comparison data
+            const comparisonWatch = {
+                id: Date.now(),
+                brand: brand,
+                model: model,
+                reference: reference,
+                currentPrice: Math.floor(Math.random() * 50000) + 10000,
+                change: (Math.random() * 20 - 10).toFixed(2)
+            };
+
+            comparisonWatches.push(comparisonWatch);
+            renderComparisons();
+        }
+
+        function removeComparison(id) {
+            comparisonWatches = comparisonWatches.filter(w => w.id !== id);
+            renderComparisons();
+        }
+
+        function renderComparisons() {
+            const grid = document.getElementById('comparisonGrid');
+            grid.innerHTML = comparisonWatches.map(watch => `
+                <div class="comparison-card">
+                    <button class="remove-comparison" onclick="removeComparison(${watch.id})">Remove</button>
+                    <h3>${watch.brand} ${watch.model}</h3>
+                    <div class="reference">Ref. ${watch.reference}</div>
+                    <div class="stat-label">Current Price</div>
+                    <div class="stat-value">$${watch.currentPrice.toLocaleString()}</div>
+                    <div class="price-change ${watch.change >= 0 ? 'positive' : 'negative'}" style="margin-top: 1rem;">
+                        ${watch.change >= 0 ? '+' : ''}${watch.change}% (1Y)
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================
+        // NAVIGATION
+        // ============================================
+
+        function showView(view) {
+            // Update button states
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Hide all views
+            document.getElementById('searchView').style.display = 'none';
+            document.getElementById('trendingView').style.display = 'none';
+            document.getElementById('alertsView').style.display = 'none';
+            document.getElementById('collectionView').style.display = 'none';
+
+            // Show selected view
+            currentView = view;
+            if (view === 'search') {
+                document.getElementById('searchView').style.display = 'block';
+            } else if (view === 'trending') {
+                document.getElementById('trendingView').style.display = 'block';
+                loadTrending();
+            } else if (view === 'alerts') {
+                document.getElementById('alertsView').style.display = 'block';
+                renderAlerts();
+            } else if (view === 'collection') {
+                document.getElementById('collectionView').style.display = 'block';
+                renderCollection();
+            }
+        }
+
+        // ============================================
+        // AUTOCOMPLETE
+        // ============================================
+
+        function showAutocomplete(field, value) {
+            if (!value || value.length < 2) {
+                document.getElementById(field + 'Autocomplete').classList.remove('active');
+                return;
+            }
+
+            const dropdown = document.getElementById(field + 'Autocomplete');
+            let suggestions = [];
+
+            if (field === 'brand') {
+                suggestions = AUTOCOMPLETE_DATA.brands.filter(b => 
+                    b.toLowerCase().includes(value.toLowerCase())
+                );
+            } else if (field === 'model') {
+                const selectedBrand = document.getElementById('brand').value;
+                const models = AUTOCOMPLETE_DATA.models[selectedBrand] || 
+                              Object.values(AUTOCOMPLETE_DATA.models).flat();
+                suggestions = models.filter(m => 
+                    m.toLowerCase().includes(value.toLowerCase())
+                );
+            } else if (field === 'year') {
+                suggestions = AUTOCOMPLETE_DATA.years.filter(y => 
+                    y.includes(value)
+                );
+            } else if (field === 'reference') {
+                suggestions = AUTOCOMPLETE_DATA.references.filter(r => 
+                    r.toLowerCase().includes(value.toLowerCase())
+                );
+            }
+
+            if (suggestions.length === 0) {
+                dropdown.classList.remove('active');
+                return;
+            }
+
+            dropdown.innerHTML = suggestions.slice(0, 5).map(item => `
+                <div class="autocomplete-item" onclick="selectAutocomplete('${field}', '${item}')">
+                    ${item}
+                </div>
+            `).join('');
+
+            dropdown.classList.add('active');
+        }
+
+        function selectAutocomplete(field, value) {
+            document.getElementById(field).value = value;
+            document.getElementById(field + 'Autocomplete').classList.remove('active');
+        }
+
+        function showAlertAutocomplete(value) {
+            if (!value || value.length < 2) {
+                document.getElementById('alertAutocomplete').classList.remove('active');
+                return;
+            }
+
+            const dropdown = document.getElementById('alertAutocomplete');
+            const suggestions = Object.values(MOCK_WATCHES).filter(w => 
+                w.brand.toLowerCase().includes(value.toLowerCase()) ||
+                w.model.toLowerCase().includes(value.toLowerCase()) ||
+                w.reference.toLowerCase().includes(value.toLowerCase())
+            );
+
+            if (suggestions.length === 0) {
+                dropdown.classList.remove('active');
+                return;
+            }
+
+            dropdown.innerHTML = suggestions.slice(0, 5).map(watch => `
+                <div class="autocomplete-item" onclick="selectAlertWatch('${watch.brand}', '${watch.model}', '${watch.reference}')">
+                    ${watch.brand} ${watch.model}
+                    <small>Ref. ${watch.reference} - $${watch.currentPrice.toLocaleString()}</small>
+                </div>
+            `).join('');
+
+            dropdown.classList.add('active');
+        }
+
+        function selectAlertWatch(brand, model, reference) {
+            document.getElementById('alertWatch').value = `${brand} ${model} (${reference})`;
+            document.getElementById('alertAutocomplete').classList.remove('active');
+        }
+
+        // Close autocomplete when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.autocomplete-container')) {
+                document.querySelectorAll('.autocomplete-dropdown').forEach(d => d.classList.remove('active'));
+            }
+        });
+
+        // ============================================
+        // TRENDING WATCHES
+        // ============================================
+
+        function loadTrending() {
+            // In production, fetch from API: /api/watches/trending
+            // For now, use mock data based on search history
+            const trendingData = getTrendingWatches();
+            renderTrending(trendingData);
+        }
+
+        function getTrendingWatches() {
+            // Mock trending based on search history and popularity
+            const trending = Object.values(MOCK_WATCHES).map((watch, index) => ({
+                ...watch,
+                searches: Math.floor(Math.random() * 1000) + 100,
+                rank: index + 1
+            }));
+
+            return trending.sort((a, b) => b.searches - a.searches).slice(0, 6);
+        }
+
+        function renderTrending(watches) {
+            const grid = document.getElementById('trendingGrid');
+            grid.innerHTML = watches.map((watch, index) => `
+                <div class="trending-card" onclick="searchFromTrending('${watch.brand}', '${watch.model}', '${watch.reference}')">
+                    <h3>${watch.brand} ${watch.model}</h3>
+                    <div class="reference">Ref. ${watch.reference}</div>
+                    <div class="trending-stats">
+                        <div class="trending-price">$${watch.currentPrice.toLocaleString()}</div>
+                        <div class="trending-badge">#${index + 1} Trending</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function searchFromTrending(brand, model, reference) {
+            document.getElementById('brand').value = brand;
+            document.getElementById('model').value = model;
+            document.getElementById('reference').value = reference;
+            showView('search');
+            document.querySelector('.nav-btn').classList.add('active');
+            searchWatch();
+        }
+
+        function refreshTrending() {
+            // In production: fetch('/api/watches/trending?refresh=true')
+            loadTrending();
+        }
+
+        // ============================================
+        // PRICE ALERTS
+        // ============================================
+
+        function createAlert() {
+            const watchInput = document.getElementById('alertWatch').value;
+            const condition = document.getElementById('alertCondition').value;
+            const targetPrice = parseFloat(document.getElementById('alertPrice').value);
+
+            if (!watchInput || !targetPrice) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const alert = {
+                id: Date.now(),
+                watch: watchInput,
+                condition: condition,
+                targetPrice: targetPrice,
+                createdAt: new Date().toLocaleDateString()
+            };
+
+            priceAlerts.push(alert);
+            localStorage.setItem('priceAlerts', JSON.stringify(priceAlerts));
+
+            // Clear form
+            document.getElementById('alertWatch').value = '';
+            document.getElementById('alertPrice').value = '';
+
+            renderAlerts();
+
+            // TODO: In production, send to API
+            // fetch('/api/alerts', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify(alert)
+            // });
+        }
+
+        function renderAlerts() {
+            const list = document.getElementById('alertList');
+            
+            if (priceAlerts.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">No price alerts set. Create one above to get notified when prices change.</p>';
+                return;
+            }
+
+            list.innerHTML = priceAlerts.map(alert => `
+                <div class="alert-item">
+                    <div class="alert-info">
+                        <h4>${alert.watch}</h4>
+                        <small>Alert when price ${alert.condition === 'below' ? 'drops below' : 'rises above'} $${alert.targetPrice.toLocaleString()} • Created ${alert.createdAt}</small>
+                    </div>
+                    <button class="delete-alert" onclick="deleteAlert(${alert.id})">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteAlert(id) {
+            priceAlerts = priceAlerts.filter(a => a.id !== id);
+            localStorage.setItem('priceAlerts', JSON.stringify(priceAlerts));
+            renderAlerts();
+
+            // TODO: In production
+            // fetch(`/api/alerts/${id}`, { method: 'DELETE' });
+        }
+
+        // ============================================
+        // COLLECTION MANAGEMENT
+        // ============================================
+
+        function openAddToCollectionModal() {
+            document.getElementById('addCollectionModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function quickAddToCollection() {
+            if (!currentWatchData) {
+                alert('No watch selected');
+                return;
+            }
+
+            // Pre-fill the modal with current watch data
+            document.getElementById('collectionBrand').value = currentWatchData.brand;
+            document.getElementById('collectionModel').value = currentWatchData.model;
+            document.getElementById('collectionReference').value = currentWatchData.reference;
+            
+            // Set purchase price to current market price as default (user can change)
+            document.getElementById('purchasePrice').value = currentWatchData.currentPrice;
+            
+            // Set today's date as default
+            document.getElementById('purchaseDate').valueAsDate = new Date();
+            
+            // Open the modal
+            openAddToCollectionModal();
+        }
+
+        function quickAddFromSearch(brand, model, reference, currentPrice) {
+            // Pre-fill the modal with watch data from search results
+            document.getElementById('collectionBrand').value = brand;
+            document.getElementById('collectionModel').value = model;
+            document.getElementById('collectionReference').value = reference;
+            document.getElementById('purchasePrice').value = currentPrice;
+            document.getElementById('purchaseDate').valueAsDate = new Date();
+            
+            // Open the modal
+            openAddToCollectionModal();
+        }
+
+        function addToCollection() {
+            const brand = document.getElementById('collectionBrand').value;
+            const model = document.getElementById('collectionModel').value;
+            const reference = document.getElementById('collectionReference').value;
+            const purchasePrice = parseFloat(document.getElementById('purchasePrice').value);
+            const purchaseDate = document.getElementById('purchaseDate').value;
+
+            // Find current market price
+            const watchKey = `${brand.toLowerCase()}-${model.toLowerCase()}-${reference.toLowerCase()}`.replace(/\s+/g, '-');
+            let currentPrice = purchasePrice; // Default to purchase price
+            
+            for (const [key, value] of Object.entries(MOCK_WATCHES)) {
+                if (key.includes(brand.toLowerCase()) || key.includes(reference.toLowerCase())) {
+                    currentPrice = value.currentPrice;
+                    break;
+                }
+            }
+
+            const watch = {
+                id: Date.now(),
+                brand,
+                model,
+                reference,
+                purchasePrice,
+                currentPrice,
+                purchaseDate,
+                addedAt: new Date().toISOString()
+            };
+
+            collection.push(watch);
+            localStorage.setItem('watchCollection', JSON.stringify(collection));
+
+            // Clear and close
+            document.getElementById('collectionBrand').value = '';
+            document.getElementById('collectionModel').value = '';
+            document.getElementById('collectionReference').value = '';
+            document.getElementById('purchasePrice').value = '';
+            document.getElementById('purchaseDate').value = '';
+            closeModal('addCollectionModal');
+
+            renderCollection();
+
+            // TODO: In production
+            // fetch('/api/collection', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify(watch)
+            // });
+        }
+
+        function renderCollection() {
+            updateCollectionStats();
+
+            const grid = document.getElementById('collectionGrid');
+            
+            if (collection.length === 0) {
+                grid.innerHTML = `
+                    <div class="add-to-collection" onclick="openAddToCollectionModal()">
+                        <div class="add-to-collection-icon">+</div>
+                        <div>Add your first watch to start tracking your collection</div>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = collection.map(watch => {
+                const gainLoss = watch.currentPrice - watch.purchasePrice;
+                const gainLossPercent = ((gainLoss / watch.purchasePrice) * 100).toFixed(2);
+                
+                return `
+                    <div class="collection-card">
+                        <h3>${watch.brand} ${watch.model}</h3>
+                        <div class="reference">Ref. ${watch.reference}</div>
+                        <div class="collection-price">$${watch.currentPrice.toLocaleString()}</div>
+                        <div class="purchase-info">
+                            Purchased: $${watch.purchasePrice.toLocaleString()} on ${new Date(watch.purchaseDate).toLocaleDateString()}
+                        </div>
+                        <div class="price-change ${gainLoss >= 0 ? 'positive' : 'negative'}" style="margin-bottom: 1rem;">
+                            ${gainLoss >= 0 ? '+' : ''}$${Math.abs(gainLoss).toLocaleString()} (${gainLossPercent >= 0 ? '+' : ''}${gainLossPercent}%)
+                        </div>
+                        <div class="collection-actions">
+                            <button onclick="viewWatchDetails('${watch.brand}', '${watch.model}', '${watch.reference}')">View Details</button>
+                            <button class="delete-alert" onclick="removeFromCollection(${watch.id})">Remove</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateCollectionStats() {
+            const totalWatches = collection.length;
+            const totalValue = collection.reduce((sum, w) => sum + w.currentPrice, 0);
+            const totalCost = collection.reduce((sum, w) => sum + w.purchasePrice, 0);
+            const totalGainLoss = totalValue - totalCost;
+
+            document.getElementById('collectionCount').textContent = totalWatches;
+            document.getElementById('collectionValue').textContent = '$' + totalValue.toLocaleString();
+            
+            const gainLossElement = document.getElementById('collectionGainLoss');
+            gainLossElement.textContent = (totalGainLoss >= 0 ? '+' : '') + '$' + Math.abs(totalGainLoss).toLocaleString();
+            gainLossElement.style.color = totalGainLoss >= 0 ? 'var(--success-green)' : 'var(--danger-red)';
+
+            if (collection.length > 0) {
+                const bestPerformer = collection.reduce((best, watch) => {
+                    const gain = ((watch.currentPrice - watch.purchasePrice) / watch.purchasePrice) * 100;
+                    const bestGain = ((best.currentPrice - best.purchasePrice) / best.purchasePrice) * 100;
+                    return gain > bestGain ? watch : best;
+                });
+                document.getElementById('bestPerformer').textContent = `${bestPerformer.brand} ${bestPerformer.model}`;
+            }
+        }
+
+        function removeFromCollection(id) {
+            if (!confirm('Are you sure you want to remove this watch from your collection?')) return;
+            
+            collection = collection.filter(w => w.id !== id);
+            localStorage.setItem('watchCollection', JSON.stringify(collection));
+            renderCollection();
+
+            // TODO: In production
+            // fetch(`/api/collection/${id}`, { method: 'DELETE' });
+        }
+
+        function viewWatchDetails(brand, model, reference) {
+            document.getElementById('brand').value = brand;
+            document.getElementById('model').value = model;
+            document.getElementById('reference').value = reference;
+            showView('search');
+            document.querySelector('.nav-btn').classList.add('active');
+            searchWatch();
+        }
+
+        // ============================================
+        // API INTEGRATION GUIDE
+        // ============================================
+
+        // ============================================
+        // API INTEGRATION GUIDE
+        // ============================================
+
+        /*
+        TO INTEGRATE WITH YOUR BACKEND API:
+
+        1. SEARCH ENDPOINT
+           Replace the searchWatch() function's mock data logic with:
+           
+           fetch(`/api/watches/search?brand=${encodeURIComponent(brand)}&model=${encodeURIComponent(model)}&year=${encodeURIComponent(year)}&reference=${encodeURIComponent(reference)}`)
+               .then(response => response.json())
+               .then(data => {
+                   // data can be either an array of watches or a single watch object
+                   if (Array.isArray(data) && data.length > 1) {
+                       displaySearchResults(data);
+                   } else if (Array.isArray(data)) {
+                       displayWatchData(data[0]);
+                   } else {
+                       displayWatchData(data);
+                   }
+               })
+               .catch(error => {
+                   console.error('Error:', error);
+                   alert('Error searching for watch. Please try again.');
+               });
+
+        2. WATCH DATA FORMAT
+           Your API should return JSON in this format:
+           
+           Single watch:
+           {
+               "brand": "Rolex",
+               "model": "Submariner Date",
+               "reference": "126610LN",
+               "year": 2020,
+               "description": "Watch description...",
+               "currentPrice": 15850,
+               "priceHistory": [
+                   {
+                       "date": "2024-02-01",
+                       "price": 14200,
+                       "change": 0,
+                       "source": "Chrono24"
+                   },
+                   ...
+               ]
+           }
+           
+           Multiple watches (for year-based searches):
+           [
+               {
+                   "brand": "Omega",
+                   "model": "Speedmaster Professional",
+                   "reference": "145.022",
+                   "year": 1985,
+                   "currentPrice": 8200,
+                   ...
+               },
+               {
+                   "brand": "Omega",
+                   "model": "Speedmaster Automatic",
+                   "reference": "345.0022",
+                   "year": 1985,
+                   "currentPrice": 3900,
+                   ...
+               }
+           ]
+
+        3. AUTOCOMPLETE ENDPOINT
+           GET /api/autocomplete?field=brand&q=rolex
+           GET /api/autocomplete?field=model&q=submariner&brand=rolex
+           GET /api/autocomplete?field=year&q=198
+           GET /api/autocomplete?field=reference&q=126610
+           
+           Returns: { "suggestions": ["Rolex", "Roger Dubuis", ...] }
+
+        4. YEAR SEARCH LOGIC
+           When a user searches by year (e.g., "1985 Omega Speedmaster"), your backend should:
+           - Filter watches by production year OR release year
+           - Return multiple results if multiple references exist for that year
+           - Order by popularity or current price
+           
+           Example query:
+           SELECT * FROM watches 
+           WHERE brand LIKE '%Omega%' 
+           AND model LIKE '%Speedmaster%' 
+           AND year = 1985
+           ORDER BY popularity DESC, current_price DESC;
+
+        4. TRENDING WATCHES ENDPOINT
+           GET /api/watches/trending
+           
+           Returns: [
+               {
+                   "brand": "Rolex",
+                   "model": "Submariner",
+                   "reference": "126610LN",
+                   "currentPrice": 15850,
+                   "searches": 1543,
+                   "rank": 1
+               },
+               ...
+           ]
+
+        5. PRICE ALERTS ENDPOINTS
+           POST /api/alerts
+           Body: {
+               "watch": "Rolex Submariner (126610LN)",
+               "condition": "below",
+               "targetPrice": 15000
+           }
+           
+           GET /api/alerts - Get all alerts for user
+           DELETE /api/alerts/:id - Delete specific alert
+           
+           Background job should check prices periodically and send notifications
+           when conditions are met (email, push notifications, etc.)
+
+        6. COLLECTION ENDPOINTS
+           POST /api/collection
+           Body: {
+               "brand": "Rolex",
+               "model": "Submariner",
+               "reference": "126610LN",
+               "purchasePrice": 14000,
+               "purchaseDate": "2024-01-15"
+           }
+           
+           GET /api/collection - Get user's full collection with current prices
+           DELETE /api/collection/:id - Remove watch from collection
+           GET /api/collection/stats - Get collection statistics
+
+        7. AUTHENTICATION
+           Add JWT or session-based authentication:
+           - All user-specific endpoints (alerts, collection) require auth
+           - Include Authorization header: "Bearer <token>"
+           
+           Example:
+           fetch('/api/collection', {
+               headers: {
+                   'Authorization': 'Bearer ' + userToken,
+                   'Content-Type': 'application/json'
+               }
+           })
+
+        8. REAL-TIME PRICE UPDATES
+           Consider implementing WebSocket for real-time price updates:
+           
+           const ws = new WebSocket('wss://your-domain.com/prices');
+           ws.onmessage = (event) => {
+               const priceUpdate = JSON.parse(event.data);
+               updatePriceDisplay(priceUpdate);
+           };
+
+        9. RATE LIMITING
+           Implement rate limiting on your API to prevent abuse:
+           - Search: 100 requests per minute per user
+           - Autocomplete: 20 requests per second
+           - Trending: Cache for 5-10 minutes
+
+        10. DATA SOURCES
+            Popular watch price data sources:
+            - Chrono24 API (paid)
+            - WatchCharts (paid)
+            - Web scraping (be careful with legal/ToS)
+            - Your own marketplace data
+            
+            Consider aggregating multiple sources for accuracy
+        */
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        // Load alerts and collection on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            renderAlerts();
+            renderCollection();
+        });
+    </script>
+</body>
+</html>
